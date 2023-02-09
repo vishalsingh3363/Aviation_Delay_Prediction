@@ -5,37 +5,34 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 
 def loadData():
-    df = pd.read_csv('flights.csv')
+    flights = pd.read_csv('flight.csv')
     airport = pd.read_csv('airports.csv')
-    df1 = df.sample(n=100000)
-    return df1
-    
-    df1.drop(['YEAR',  'FLIGHT_NUMBER','TAIL_NUMBER', 'DEPARTURE_TIME',  'TAXI_OUT','WHEELS_OFF', 'SCHEDULED_TIME', 'ELAPSED_TIME', 'AIR_TIME',
-    'WHEELS_ON', 'TAXI_IN', 'SCHEDULED_ARRIVAL', 'ARRIVAL_TIME',
-    'DIVERTED', 'CANCELLED', 'CANCELLATION_REASON',
-    'AIR_SYSTEM_DELAY', 'SECURITY_DELAY', 'AIRLINE_DELAY','LATE_AIRCRAFT_DELAY', 'WEATHER_DELAY'],axis=1,inplace= True)
 
-    df1.loc[~df1.ORIGIN_AIRPORT.isin(airport.IATA_CODE.values),'ORIGIN_AIRPORT']='OTHER'
-    df1.loc[~df1.DESTINATION_AIRPORT.isin(airport.IATA_CODE.values),'DESTINATION_AIRPORT']='OTHER'
+    variables_to_remove=["YEAR","FLIGHT_NUMBER","TAIL_NUMBER","DEPARTURE_TIME","TAXI_OUT","WHEELS_OFF","ELAPSED_TIME","AIR_TIME","WHEELS_ON","TAXI_IN","ARRIVAL_TIME","DIVERTED","CANCELLED","CANCELLATION_REASON","AIR_SYSTEM_DELAY", "SECURITY_DELAY","AIRLINE_DELAY","LATE_AIRCRAFT_DELAY","WEATHER_DELAY","SCHEDULED_TIME","SCHEDULED_ARRIVAL"]
+    flights.drop(variables_to_remove,axis=1,inplace= True)
 
-    df1=df1.dropna()
+    flights.loc[~flights.ORIGIN_AIRPORT.isin(airport.IATA_CODE.values),'ORIGIN_AIRPORT']='OTHER'
+    flights.loc[~flights.DESTINATION_AIRPORT.isin(airport.IATA_CODE.values),'DESTINATION_AIRPORT']='OTHER'
 
-    data=pd.DataFrame(df1)
-    data['DAY_OF_WEEK']= df['DAY_OF_WEEK'].apply(str)
-    data["DAY_OF_WEEK"].replace({"1":"SUNDAY", "2": "MONDAY", "3": "TUESDAY", "4":"WEDNESDAY", "5":"THURSDAY", "6":"FRIDAY", "7":"SATURDAY"},inplace=True)
+    flights=flights.dropna()
+
+    df=pd.DataFrame(flights)
+    df['DAY_OF_WEEK']= df['DAY_OF_WEEK'].apply(str)
+    df["DAY_OF_WEEK"].replace({"1":"SUNDAY", "2": "MONDAY", "3": "TUESDAY", "4":"WEDNESDAY", "5":"THURSDAY", "6":"FRIDAY", "7":"SATURDAY"},inplace=True)
 
     dums = ['AIRLINE','ORIGIN_AIRPORT','DESTINATION_AIRPORT','DAY_OF_WEEK']
     df_cat=pd.get_dummies(df[dums],drop_first=True)
 
     var_to_remove=["DAY_OF_WEEK","AIRLINE","ORIGIN_AIRPORT","DESTINATION_AIRPORT"]
-    df1.drop(var_to_remove,axis=1,inplace=True)
+    df.drop(var_to_remove,axis=1,inplace=True)
 
-    data=pd.concat([df1,df_cat],axis=1)
-    
+    data=pd.concat([df,df_cat],axis=1)
+    final_data = data.sample(n=60000)
+    return final_data
 
-def preprocessing(data):
-    X=data.drop("DEPARTURE_DELAY",axis=1)
-    Y=data.DEPARTURE_DELAY
+def preprocessing(final_data):
+    X=final_data.drop("DEPARTURE_DELAY",axis=1)
+    Y=final_data.DEPARTURE_DELAY
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=0)
     return X_train,y_train,X
 
@@ -79,8 +76,8 @@ def main():
 
     choice= st.selectbox("Choose Machine Learning Model",["None","Random Forest Regressor"])
     if choice=="Random Forest Regressor":
-        data = loadData()
-        X_train,y_train,X= preprocessing(data)
+        final_data = loadData()
+        X_train,y_train,X= preprocessing(final_data)
         reg_rf = rfg(X_train,y_train)
 
         month,day,sch_dept,distance,arrival_delay,airline,origin,destination,day_of_week = accept_data()
